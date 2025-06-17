@@ -197,11 +197,6 @@ create_directories() {
         echo -e "${GREEN}创建配置目录: $CONFIG_DIR${NC}"
     fi
 
-    # 创建运行时目录
-    if [ ! -d "$INSTALL_DIR/runtime" ]; then
-        mkdir -p "$INSTALL_DIR/runtime"
-        echo -e "${GREEN}创建运行时目录: $INSTALL_DIR/runtime${NC}"
-    fi
 }
 
 # 下载文件

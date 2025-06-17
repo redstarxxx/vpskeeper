@@ -22,7 +22,6 @@ VPSKeeper 是一个功能强大的 Linux VPS 服务器监控和管理工具，�
 VPSKeeper/
 ├── vpskeeper.sh              # 管理工具入口
 ├── README.md                 # 项目说明
-├── docs/                     # 文档目录
 ├── lib/                      # 核心库
 │   ├── core.sh              # 核心函数库
 │   ├── colors.sh            # 颜色定义
@@ -33,7 +32,7 @@ VPSKeeper/
 │   ├── monitoring/          # 监控模块
 │   ├── notifications/       # 通知模块
 │   └── system/              # 系统模块
-└── runtime/                 # 运行时文件
+└── shfiles/                 # 运行时文件
 ```
 
 ### 核心组件
@@ -124,7 +123,7 @@ VPSKeeper/
 ================================
 
 1. 开机通知 | 已设置
-2. 登录通知 | 未设置  
+2. 登录通知 | 未设置
 3. 关机通知 | 已设置
 4. CPU 监控 | 未设置
 5. 内存监控 | 未设置
