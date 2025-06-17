@@ -133,8 +133,8 @@ T_VIEWLOG() {
             read -n 1 -s -r -p ""
             stty intr ^C # 恢复 CTRL+C
             # stty sane # 重置终端设置为默认值
-            # kill -2 $tail_pid 2>/dev/null
-            kill -SIGKILL $tail_pid 2>/dev/null
+            kill -2 $tail_pid 2>/dev/null
+            # kill -SIGKILL $tail_pid 2>/dev/null
             killpid "tail"
             # pkill -f tail
             # kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
