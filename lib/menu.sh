@@ -33,10 +33,6 @@ elif [ -f "/opt/vpskeeper/sub/loadList.sh" ]; then
     # 安装目录，使用旧的加载器
     SCRIPT_DIR="/opt/vpskeeper"
     source "$SCRIPT_DIR/sub/loadList.sh"
-elif [ -f "$(dirname "$SCRIPT_DIR")/VPSK_aug/sub/loadList.sh" ]; then
-    # 尝试当前目录的上级目录
-    SCRIPT_DIR="$(dirname "$SCRIPT_DIR")/VPSK_aug"
-    source "$SCRIPT_DIR/sub/loadList.sh"
 elif [ -f "./sub/loadList.sh" ]; then
     # 尝试相对路径
     SCRIPT_DIR="."
@@ -282,15 +278,27 @@ tips=""
 get_remote_version_async() {
     local remote_version=""
 
-    # 尝试从 GitHub raw 文件获取版本
+    # 尝试从 GitHub Releases API 获取最新版本标签
     if command -v curl >/dev/null 2>&1; then
-        remote_version=$(timeout 2 curl -s "https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/sub/config.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        remote_version=$(timeout 2 curl -s https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
     fi
 
     # 如果 curl 失败，尝试 wget
     if [ -z "$remote_version" ] && command -v wget >/dev/null 2>&1; then
-        remote_version=$(timeout 2 wget -qO- "https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/sub/config.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        remote_version=$(timeout 2 wget -qO- https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
     fi
+
+    # 如果 GitHub API 失败，回退到从源码文件获取版本
+    if [ -z "$remote_version" ]; then
+        if command -v curl >/dev/null 2>&1; then
+            remote_version=$(timeout 2 curl -s "https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/lib/core.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        elif command -v wget >/dev/null 2>&1; then
+            remote_version=$(timeout 2 wget -qO- "https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/lib/core.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        fi
+    fi
+
+    # 移除版本号前缀 'v' (如果存在)
+    remote_version=$(echo "$remote_version" | sed 's/^v//')
 
     echo "$remote_version"
 }
@@ -373,9 +381,17 @@ fi
 
 CLS
 # 构建版本显示字符串
-version_display="${RE}[${sh_ver:-unknown}]${NC}"
-if [ -n "$remote_version_info" ] && [ "$remote_version_info" != "${sh_ver:-unknown}" ]; then
-    version_display="${RE}[${sh_ver:-unknown}]${NC} ${YE}(远程: ${remote_version_info})${NC}"
+if [ -n "$remote_version_info" ]; then
+    if [ "$remote_version_info" != "${sh_ver:-unknown}" ]; then
+        # 有新版本可用
+        version_display="${RE}[${sh_ver:-unknown}]${NC} ${YE}→ [${remote_version_info}]${NC}"
+    else
+        # 当前版本是最新的
+        version_display="${GR}[${sh_ver:-unknown}]${NC} ${GR}✓${NC}"
+    fi
+else
+    # 无法获取远程版本
+    version_display="${RE}[${sh_ver:-unknown}]${NC} ${RED}?${NC}"
 fi
 
 echo && echo -e "${GR}VPS-TG${NC} 守护一键管理脚本 $version_display
@@ -414,8 +430,8 @@ if [ "$tips" = "" ]; then
 else
     echo -e "$tips" && echo
 fi
-echo -en "请输入选项 [${GR}0-9${NC}|${GR}t${NC}|${GR}h${NC}|${GR}o${NC}|${GR}c${NC}|${GR}f${NC}|${GR}u${NC}|${GR}v${NC}|${GR}x${NC}] : "
-read -er num
+# 保持退格键功能，使用 -p 参数避免提示消失问题
+read -e -p "请输入选项 [${GR}0-9${NC}|${GR}t${NC}|${GR}h${NC}|${GR}o${NC}|${GR}c${NC}|${GR}f${NC}|${GR}u${NC}|${GR}v${NC}|${GR}x${NC}] : " num
 if [ -z "$num" ]; then echo; fi
 case "$num" in
     0)

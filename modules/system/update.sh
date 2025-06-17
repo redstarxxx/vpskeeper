@@ -51,18 +51,65 @@ Force_update() {
 }
 
 update_sh() {
-    ol_ver=$(curl -L -s --connect-timeout 5 "${ProxyURL}"https://raw.githubusercontent.com/redstarxxx/shell/main/vpskeeper.sh | grep "sh_ver=" | head -1 | awk -F '=|"' '{print $3}')
+    # 首先尝试从 GitHub Releases API 获取最新版本标签
+    ol_ver=$(curl -L -s --connect-timeout 5 "${ProxyURL}"https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
+
+    # 移除版本号前缀 'v' (如果存在)
+    ol_ver=$(echo "$ol_ver" | sed 's/^v//')
+
+    # 如果 GitHub API 失败，回退到从源码文件获取版本
+    if [ -z "$ol_ver" ]; then
+        ol_ver=$(curl -L -s --connect-timeout 5 "${ProxyURL}"https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/lib/core.sh | grep "sh_ver=" | head -1 | awk -F '=|"' '{print $3}')
+    fi
+
     if [ -n "$ol_ver" ]; then
         if [[ "$sh_ver" != "$ol_ver" ]]; then
-            echo -e "脚本更新中..."
-            # curl -o vpskeeper.sh https://raw.githubusercontent.com/redstarxxx/shell/main/vpskeeper.sh && chmod +x vpskeeper.sh
-            wget -N --no-check-certificate "${ProxyURL}"https://raw.githubusercontent.com/redstarxxx/shell/main/vpskeeper.sh && chmod +x vpskeeper.sh
-            echo -e "已更新完成, 请${GR}重新执行${NC}脚本."
-            exit 0
+            echo -e "检测到新版本，开始更新..."
+            echo -e "当前版本: ${GR}$sh_ver${NC}"
+            echo -e "最新版本: ${GR}$ol_ver${NC}"
+            echo ""
+
+            # 创建临时目录
+            TEMP_DIR="/tmp/vpskeeper_update_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$TEMP_DIR"
+
+            echo -e "${YELLOW}正在下载最新版本的所有文件...${NC}"
+
+            # 下载主安装脚本
+            echo "下载主安装脚本..."
+            if ! wget -O "$TEMP_DIR/vpskeeper.sh" "${ProxyURL}https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/vpskeeper.sh" 2>/dev/null; then
+                echo -e "${RED}下载主安装脚本失败${NC}"
+                rm -rf "$TEMP_DIR"
+                tips="$Err ${RE}更新失败, 请检查网络连接!${NC}"
+                return 1
+            fi
+
+            chmod +x "$TEMP_DIR/vpskeeper.sh"
+
+            echo -e "${GREEN}下载完成！${NC}"
+            echo ""
+            echo -e "${YELLOW}重要提示：${NC}"
+            echo -e "1. 已下载最新的安装脚本到: ${GR}$TEMP_DIR/vpskeeper.sh${NC}"
+            echo -e "2. 请运行以下命令完成完整更新："
+            echo -e "   ${GR}bash $TEMP_DIR/vpskeeper.sh${NC}"
+            echo -e "3. 在新安装脚本中选择 ${GR}2. 更新 VPSKeeper${NC} 来更新所有文件"
+            echo ""
+            echo -e "${RED}注意：这将更新所有项目文件（lib、modules等），并保留您的配置${NC}"
+            echo ""
+
+            # 询问是否立即执行完整更新
+            read -e -p "是否现在立即执行完整更新? (y/N): " choice
+            if [[ $choice =~ ^[Yy]$ ]]; then
+                echo -e "${YELLOW}正在执行完整更新...${NC}"
+                exec bash "$TEMP_DIR/vpskeeper.sh"
+            else
+                echo -e "${YELLOW}请稍后手动执行完整更新${NC}"
+                tips="$Tip 更新脚本已准备就绪，请运行: ${GR}bash $TEMP_DIR/vpskeeper.sh${NC}"
+            fi
         else
             tips="$Tip ${GR}当前版本已是最新版本!${NC}"
         fi
     else
-        tips="$Err ${RE}脚本最新失败, 请检查网络连接!${NC}"
+        tips="$Err ${RE}获取最新版本失败, 请检查网络连接!${NC}"
     fi
 }

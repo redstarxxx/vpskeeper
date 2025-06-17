@@ -18,7 +18,7 @@ WHITE='\033[1;37m'
 NC='\033[0m' # No Color
 
 # 版本和路径配置
-CURRENT_VERSION="v1.2500616.1"
+CURRENT_VERSION="1.2500616.1"
 GITHUB_REPO="https://github.com/redstarxxx/vpskeeper"
 GITHUB_RAW="https://raw.githubusercontent.com/redstarxxx/vpskeeper/main"
 INSTALL_DIR="/opt/vpskeeper"
@@ -57,15 +57,27 @@ check_system() {
 get_remote_version() {
     local remote_version=""
 
-    # 尝试从 GitHub raw 文件获取版本（更可靠）
+    # 尝试从 GitHub Releases API 获取最新版本标签
     if command -v curl >/dev/null 2>&1; then
-        remote_version=$(timeout 5 curl -s "$GITHUB_RAW/sub/config.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        remote_version=$(timeout 5 curl -s https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
     fi
 
     # 如果 curl 失败，尝试 wget
     if [ -z "$remote_version" ] && command -v wget >/dev/null 2>&1; then
-        remote_version=$(timeout 5 wget -qO- "$GITHUB_RAW/sub/config.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        remote_version=$(timeout 5 wget -qO- https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
     fi
+
+    # 如果 GitHub API 失败，回退到从源码文件获取版本
+    if [ -z "$remote_version" ]; then
+        if command -v curl >/dev/null 2>&1; then
+            remote_version=$(timeout 5 curl -s "$GITHUB_RAW/lib/core.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        elif command -v wget >/dev/null 2>&1; then
+            remote_version=$(timeout 5 wget -qO- "$GITHUB_RAW/lib/core.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
+        fi
+    fi
+
+    # 移除版本号前缀 'v' (如果存在)
+    remote_version=$(echo "$remote_version" | sed 's/^v//')
 
     echo "$remote_version"
 }

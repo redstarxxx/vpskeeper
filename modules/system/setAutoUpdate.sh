@@ -62,25 +62,30 @@ SetAutoUpdate() {
     cat <<EOF > "$FolderPath/tg_autoud.sh"
 #!/bin/bash
 
+# VPSKeeper 自动更新脚本
+# 功能：下载最新安装脚本并执行完整更新
+
 retry=0
 max_retries=3
 mirror_retries=2
 
+# 创建临时目录
+TEMP_DIR="/tmp/vpskeeper_autoupdate_\$(date +%Y%m%d_%H%M%S)"
+mkdir -p "\$TEMP_DIR"
+
 # 下载函数，接受下载链接作为参数
 download_file() {
-    wget -O "$FolderPath/vpskeeper.sh" "\$1"
+    wget -O "\$TEMP_DIR/vpskeeper.sh" "\$1"
 }
 
-# 备份旧文件
-if [ -f "$FolderPath/vpskeeper.sh" ]; then
-    mv "$FolderPath/vpskeeper.sh" "$FolderPath/vpskeeper_old.sh"
-fi
+echo "VPSKeeper 自动更新开始..."
+echo "时间: \$(date)"
 
-# 尝试从原始地址下载
+# 尝试从原始地址下载最新安装脚本
 while [ \$retry -lt \$max_retries ]; do
-    download_file "https://raw.githubusercontent.com/redstarxxx/shell/main/vpskeeper.sh"
-    if [ -s "$FolderPath/vpskeeper.sh" ]; then
-        echo "下载成功"
+    download_file "https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/vpskeeper.sh"
+    if [ -s "\$TEMP_DIR/vpskeeper.sh" ]; then
+        echo "下载最新安装脚本成功"
         break
     else
         echo "下载失败，尝试重新下载..."
@@ -89,12 +94,12 @@ while [ \$retry -lt \$max_retries ]; do
 done
 
 # 如果原始地址下载失败，则尝试从备用镜像地址下载
-if [ ! -s "$FolderPath/vpskeeper.sh" ]; then
+if [ ! -s "\$TEMP_DIR/vpskeeper.sh" ]; then
     echo "尝试从备用镜像地址下载..."
     retry=0
     while [ \$retry -lt \$mirror_retries ]; do
-        download_file "https://mirror.ghproxy.com/https://raw.githubusercontent.com/redstarxxx/shell/main/vpskeeper.sh"
-        if [ -s "$FolderPath/vpskeeper.sh" ]; then
+        download_file "https://mirror.ghproxy.com/https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/vpskeeper.sh"
+        if [ -s "\$TEMP_DIR/vpskeeper.sh" ]; then
             echo "备用镜像下载成功"
             break
         else
@@ -105,30 +110,42 @@ if [ ! -s "$FolderPath/vpskeeper.sh" ]; then
 fi
 
 # 检查是否下载成功
-if [ ! -s "$FolderPath/vpskeeper.sh" ]; then
-    echo "下载失败，无法获取 vpskeeper.sh 文件"
-    # 如果下载失败，将旧文件恢复
-    if [ -f "$FolderPath/vpskeeper_old.sh" ]; then
-        mv "$FolderPath/vpskeeper_old.sh" "$FolderPath/vpskeeper.sh"
-    fi
+if [ ! -s "\$TEMP_DIR/vpskeeper.sh" ]; then
+    echo "下载失败，无法获取最新安装脚本"
+    rm -rf "\$TEMP_DIR"
     exit 1
 fi
 
-# 比较文件大小
-if [ -f "$FolderPath/vpskeeper_old.sh" ]; then
-    old_size=\$(wc -c < "$FolderPath/vpskeeper_old.sh")
-    new_size=\$(wc -c < "$FolderPath/vpskeeper.sh")
-    if [ \$old_size -ne \$new_size ]; then
-        echo "更新成功"
-    else
-        echo "无更新内容"
-    fi
+# 设置执行权限
+chmod +x "\$TEMP_DIR/vpskeeper.sh"
+
+echo "开始执行完整更新..."
+
+# 执行完整更新（静默模式，自动选择更新选项）
+# 使用 expect 或者直接调用更新功能
+cd "\$TEMP_DIR"
+
+# 创建自动更新脚本
+cat > "\$TEMP_DIR/auto_update.sh" << 'INNER_EOF'
+#!/bin/bash
+# 自动执行更新选项
+echo "2" | ./vpskeeper.sh
+INNER_EOF
+
+chmod +x "\$TEMP_DIR/auto_update.sh"
+
+# 执行自动更新
+if bash "\$TEMP_DIR/auto_update.sh"; then
+    echo "VPSKeeper 自动更新完成"
+    echo "所有文件已更新到最新版本"
+else
+    echo "自动更新过程中出现错误"
 fi
 
-# 删除旧文件
-if [ -f "$FolderPath/vpskeeper_old.sh" ]; then
-    rm "$FolderPath/vpskeeper_old.sh"
-fi
+# 清理临时文件
+rm -rf "\$TEMP_DIR"
+
+echo "自动更新结束: \$(date)"
 EOF
     chmod +x $FolderPath/tg_autoud.sh
     delcrontab "$FolderPath/tg_autoud.sh"
