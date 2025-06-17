@@ -9,6 +9,7 @@ if command -v tput >/dev/null 2>&1; then
     GREEN="$(tput setaf 2)"
     RE="$(tput setaf 1)"
     RED="$(tput setaf 1)"
+    YE="$(tput setaf 3)"
     YELLOW="$(tput setaf 3)"
     BLUE="$(tput setaf 4)"
     PURPLE="$(tput setaf 5)"
@@ -22,6 +23,7 @@ else
     GREEN='\033[0;32m'
     RE="\033[31m"
     RED='\033[0;31m'
+    YE='\033[1;33m'
     YELLOW='\033[1;33m'
     BLUE='\033[0;34m'
     PURPLE='\033[0;35m'

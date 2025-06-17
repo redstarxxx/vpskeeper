@@ -133,8 +133,7 @@ T_VIEWLOG() {
             read -n 1 -s -r -p ""
             stty intr ^C # 恢复 CTRL+C
             # stty sane # 重置终端设置为默认值
-            # kill -2 $tail_pid 2>/dev/null
-            kill -SIGKILL $tail_pid 2>/dev/null
+            kill -2 $tail_pid 2>/dev/null
             killpid "tail"
             # pkill -f tail
             # kill $(ps | grep '[t]ail' | awk '{print $1}') 2>/dev/null
@@ -285,7 +284,6 @@ T_NETSPEED() {
         fi
     fi
     if [ "$ss_s" == "st" ]; then
-        echo -e "${GRB}科学统计模式${NC} - 将显示更详细的统计信息"
         echo -en "显示 TCP/UDP 连接数 (${RE}连接数过多时不建议开启${NC}) (y/${GR}N${NC}) : "
         read -er input_tu
         if [ ! "$input_tu" == "y" ] && [ ! "$input_tu" == "Y" ]; then
@@ -294,9 +292,6 @@ T_NETSPEED() {
         else
             tu_show="true"
         fi
-    else
-        echo -e "${GRB}普通模式${NC} - 显示基本网速信息"
-        tu_show="false"
     fi
     # if [ ! -f $FolderPath/tg_interface_re.sh ]; then
         cat <<EOF > $FolderPath/tg_interface_re.sh
@@ -351,10 +346,6 @@ duration=0
 CLEAR_TAG=1
 CLEAR_TAG_OLD=\$CLEAR_TAG
 
-# 创建退出标志文件
-EXIT_FLAG="\$FolderPath/netspeed_exit_flag"
-rm -f "\$EXIT_FLAG"
-
 avg_count=0
 max_rx_speed_kb=0
 # min_rx_speed_kb=9999999999999
@@ -376,7 +367,7 @@ declare -A sp_current_tx_bytes
 CLS
 echo " 实时网速计算中..."
 echo " =================================================="
-while [ ! -f "\$EXIT_FLAG" ]; do
+while true; do
 
     # 获取tt秒前数据
     sp_ov_prev_rx_bytes=0
@@ -643,11 +634,7 @@ while [ ! -f "\$EXIT_FLAG" ]; do
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" > \$FolderPath/interface_re.txt
         CLEAR_TAG=\$((CLEAR_TAG_OLD + 1))
         CLS
-        if [ "\$ss_tag" == "st" ]; then
-            echo -e " \${GRB}实时网速 - 科学统计模式\${NC}                (\${TT}s)"
-        else
-            echo -e " \${GRB}实时网速 - 普通模式\${NC}                    (\${TT}s)"
-        fi
+        echo -e " \${GRB}实时网速\${NC}                                 (\${TT}s)"
         echo " =================================================="
     else
         echo -e "DATE: \$(date +"%Y-%m-%d %H:%M:%S")" >> \$FolderPath/interface_re.txt
@@ -723,82 +710,30 @@ while [ ! -f "\$EXIT_FLAG" ]; do
     fi
 
     CLEAR_TAG=\$((\$CLEAR_TAG - 1))
-
-    # 检查退出标志
-    if [ -f "\$EXIT_FLAG" ]; then
-        # echo -e "\n\${GR}网速监控已停止\${NC}"
-        rm -f "\$EXIT_FLAG"
-        break
-    fi
 done
-
-# 清理退出标志文件
-rm -f "\$EXIT_FLAG"
 EOF
         chmod +x $FolderPath/tg_interface_re.sh
     # fi
     CLS
-    if [ "$ss_s" == "st" ]; then
-        echo -e "${GRB}实时网速监控 - 科学统计模式${NC}"
-    else
-        echo -e "${GRB}实时网速监控 - 普通模式${NC}"
-    fi
     echo -e "${RE}注意${NC}:  ${REB}按任意键中止${NC}"
+    stty intr ^- # 禁用 CTRL+C
     divline
-
-    # 使用更简单的方法：直接在前台运行脚本，使用 trap 捕获信号
-    (
-        # 设置信号处理
-        trap 'echo -e "\n${GR}网速监控已停止${NC}"; exit 0' INT TERM
-
-        # 运行网速监控脚本
-        bash $FolderPath/tg_interface_re.sh
-    ) &
-
-    netspeed_pid=$!
-
-    # 等待用户按键
-    read -n 1 -s -r
-
-    # 用户按键后，停止监控
-    echo -e "\n${YE}正在停止网速监控...${NC}"
-
-    # 创建退出标志
-    touch "$FolderPath/netspeed_exit_flag"
-
-    # 发送 TERM 信号给子进程
-    kill -TERM $netspeed_pid 2>/dev/null
-
-    # 等待进程结束
-    local count=0
-    while [ $count -lt 5 ]; do
-        if ! kill -0 $netspeed_pid 2>/dev/null; then
-            break
+    bash $FolderPath/tg_interface_re.sh &
+    tg_interface_re_pid=$!
+    read -n 1 -s -r -p ""
+    stty intr ^C # 恢复 CTRL+C
+    # stty sane # 重置终端设置为默认值
+    kill -2 $tg_interface_re_pid 2>/dev/null
+    killpid "tg_interface_re"
+    # pkill -f tg_interface_re
+    # kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null
+    # pgrep -f tg_interface_re | xargs kill -9 2>/dev/null
+    if universal_process_exists "tg_interface_re"; then
+        echo -e "中止失败!! 请执行以下指令中止!"
+        if command -v pkill >/dev/null 2>&1; then
+            echo -e "中止指令1: ${REB}pkill -f tg_interface_re${NC}"
         fi
-        sleep 1
-        count=$((count + 1))
-    done
-
-    # 如果进程还在运行，强制终止
-    if kill -0 $netspeed_pid 2>/dev/null; then
-        kill -KILL $netspeed_pid 2>/dev/null
+        echo -e "中止指令2: ${REB}kill $(ps | grep '[t]g_interface_re' | awk '{print $1}') 2>/dev/null${NC}"
     fi
-
-    # 清理所有相关进程
-    if command -v pkill >/dev/null 2>&1; then
-        pkill -f "tg_interface_re.sh" 2>/dev/null
-    else
-        # 兼容性处理
-        if ps x >/dev/null 2>&1; then
-            ps x | grep "tg_interface_re.sh" | grep -v grep | awk '{print $1}' | xargs kill 2>/dev/null
-        else
-            ps | grep "tg_interface_re.sh" | grep -v grep | awk '{print $1}' | xargs kill 2>/dev/null
-        fi
-    fi
-
-    # 清理退出标志文件
-    rm -f "$FolderPath/netspeed_exit_flag"
-
-    # echo -e "${GR}网速监控已停止${NC}"
     divline
 }
