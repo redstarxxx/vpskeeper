@@ -13,34 +13,22 @@
 # done
 
 # 载入子脚本
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# SCRIPT_DIR="$(cd "$(dirname -- "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname -- "$0")/.." && pwd)"
+# 如果SCRIPT_DIR为/usr/local则改为/opt/vpskeeper
+if [ "$SCRIPT_DIR" == "/usr/local" ]; then
+    SCRIPT_DIR="/opt/vpskeeper"
+fi
+echo "当前目录: $SCRIPT_DIR"
 
-# 检查脚本加载器，优先使用新的模块化加载器
-if [ -f "$SCRIPT_DIR/../lib/loader.sh" ]; then
-    # 从 sub/ 目录运行，使用新的加载器
-    SCRIPT_DIR="$(dirname "$SCRIPT_DIR")"
+if [ -f "$SCRIPT_DIR/lib/loader.sh" ]; then
     source "$SCRIPT_DIR/lib/loader.sh"
     load_vpskeeper
-elif [ -f "/opt/vpskeeper/lib/loader.sh" ]; then
-    # 安装目录，使用新的加载器
-    SCRIPT_DIR="/opt/vpskeeper"
-    source "$SCRIPT_DIR/lib/loader.sh"
-    load_vpskeeper
-elif [ -f "$SCRIPT_DIR/sub/loadList.sh" ]; then
-    # 使用旧的加载器
-    source "$SCRIPT_DIR/sub/loadList.sh"
-elif [ -f "/opt/vpskeeper/sub/loadList.sh" ]; then
-    # 安装目录，使用旧的加载器
-    SCRIPT_DIR="/opt/vpskeeper"
-    source "$SCRIPT_DIR/sub/loadList.sh"
-elif [ -f "./sub/loadList.sh" ]; then
-    # 尝试相对路径
-    SCRIPT_DIR="."
-    source "$SCRIPT_DIR/sub/loadList.sh"
 else
     echo "错误: 无法找到脚本加载器"
     echo "请确保脚本已正确安装或在正确的目录中运行"
-    echo "预期路径: $SCRIPT_DIR/lib/loader.sh 或 $SCRIPT_DIR/sub/loadList.sh"
+    echo "预期路径: $SCRIPT_DIR/lib/loader.sh"
     exit 1
 fi
 
@@ -278,17 +266,14 @@ tips=""
 get_remote_version_async() {
     local remote_version=""
 
-    # 尝试从 GitHub Releases API 获取最新版本标签
     if command -v curl >/dev/null 2>&1; then
         remote_version=$(timeout 2 curl -s https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
     fi
 
-    # 如果 curl 失败，尝试 wget
     if [ -z "$remote_version" ] && command -v wget >/dev/null 2>&1; then
         remote_version=$(timeout 2 wget -qO- https://api.github.com/repos/redstarxxx/vpskeeper/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null)
     fi
 
-    # 如果 GitHub API 失败，回退到从源码文件获取版本
     if [ -z "$remote_version" ]; then
         if command -v curl >/dev/null 2>&1; then
             remote_version=$(timeout 2 curl -s "https://raw.githubusercontent.com/redstarxxx/vpskeeper/main/lib/core.sh" | grep 'sh_ver=' | head -1 | cut -d'"' -f2 2>/dev/null)
@@ -297,7 +282,6 @@ get_remote_version_async() {
         fi
     fi
 
-    # 移除版本号前缀 'v' (如果存在)
     remote_version=$(echo "$remote_version" | sed 's/^v//')
 
     echo "$remote_version"
@@ -383,14 +367,11 @@ CLS
 # 构建版本显示字符串
 if [ -n "$remote_version_info" ]; then
     if [ "$remote_version_info" != "${sh_ver:-unknown}" ]; then
-        # 有新版本可用
         version_display="${RE}[${sh_ver:-unknown}]${NC} ${YE}→ [${remote_version_info}]${NC}"
     else
-        # 当前版本是最新的
         version_display="${GR}[${sh_ver:-unknown}]${NC} ${GR}✓${NC}"
     fi
 else
-    # 无法获取远程版本
     version_display="${RE}[${sh_ver:-unknown}]${NC} ${RED}?${NC}"
 fi
 
@@ -640,7 +621,6 @@ case "$num" in
         Pause
     ;;
     vc)
-        # 查看配置文件
         divline
         echo -e "${GRB}Crontab:${NC}"
         # crontab -l | grep '[t]g_'

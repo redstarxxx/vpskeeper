@@ -22,7 +22,7 @@ CURRENT_VERSION="1.2500616.1"
 GITHUB_REPO="https://github.com/redstarxxx/vpskeeper"
 GITHUB_RAW="https://raw.githubusercontent.com/redstarxxx/vpskeeper/main"
 INSTALL_DIR="/opt/vpskeeper"
-CONFIG_DIR="/opt/vpskeeper/shfiles"
+CONFIG_DIR="/opt/vpskeeper/runtime"
 
 # 检查是否为 root 用户
 check_root() {
@@ -198,9 +198,9 @@ create_directories() {
     fi
 
     # 创建子脚本目录
-    if [ ! -d "$INSTALL_DIR/shfiles" ]; then
-        mkdir -p "$INSTALL_DIR/shfiles"
-        echo -e "${GREEN}创建子脚本目录: $INSTALL_DIR/shfiles${NC}"
+    if [ ! -d "$INSTALL_DIR/runtime" ]; then
+        mkdir -p "$INSTALL_DIR/runtime"
+        echo -e "${GREEN}创建子脚本目录: $INSTALL_DIR/runtime${NC}"
     fi
 
     # 创建配置目录
@@ -317,7 +317,7 @@ copy_local_files() {
 
     # 复制子脚本（如果存在）
     if [ -d "./sub" ] && [ "$(ls -A ./sub 2>/dev/null)" ]; then
-        cp -r ./sub/* "$INSTALL_DIR/shfiles/"
+        cp -r ./sub/* "$INSTALL_DIR/runtime/"
         echo -e "${GREEN}复制子脚本完成${NC}"
     else
         echo -e "${YELLOW}本地子脚本目录为空或不存在，跳过${NC}"
@@ -344,8 +344,8 @@ set_permissions() {
     fi
 
     # 设置子脚本权限（如果存在）
-    if [ -d "$INSTALL_DIR/shfiles" ] && [ "$(ls -A "$INSTALL_DIR/shfiles"/*.sh 2>/dev/null)" ]; then
-        chmod +x "$INSTALL_DIR/shfiles"/*.sh 2>/dev/null || true
+    if [ -d "$INSTALL_DIR/runtime" ] && [ "$(ls -A "$INSTALL_DIR/runtime"/*.sh 2>/dev/null)" ]; then
+        chmod +x "$INSTALL_DIR/runtime"/*.sh 2>/dev/null || true
     fi
 
     echo -e "${GREEN}权限设置完成${NC}"
@@ -590,7 +590,7 @@ uninstall_vpskeeper() {
     # 删除配置目录
     echo -e "${YELLOW}删除配置文件...${NC}"
     local config_dirs_removed=0
-    for config_dir in "/opt/vpskeeper/shfiles" "/opt/VPSKeeper/shfiles" "$HOME/.shfile"; do
+    for config_dir in "/opt/vpskeeper/runtime" "/opt/VPSKeeper/runtime" "$HOME/.shfile"; do
         if [ -d "$config_dir" ]; then
             rm -rf "$config_dir"
             config_dirs_removed=$((config_dirs_removed + 1))

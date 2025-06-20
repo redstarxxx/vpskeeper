@@ -10,26 +10,19 @@
 get_script_dir() {
     local script_path="$0"
 
-    # 如果是符号链接，获取真实路径
     if [ -L "$script_path" ]; then
         script_path=$(readlink -f "$script_path")
     fi
 
-    # 获取脚本所在目录
     local script_dir=$(dirname "$script_path")
 
-    # 尝试不同的目录结构
-    if [ -f "$script_dir/../lib/core.sh" ]; then
-        # 从 sub/ 目录运行
-        SCRIPT_DIR="$(dirname "$script_dir")"
-    elif [ -f "$script_dir/lib/core.sh" ]; then
-        # 从根目录运行
+    script_dir=$(cd "$script_dir" && pwd)
+
+    if [ -f "$script_dir/lib/core.sh" ]; then
         SCRIPT_DIR="$script_dir"
-    elif [ -f "/opt/vpskeeper/lib/core.sh" ]; then
-        # 安装后的目录
-        SCRIPT_DIR="/opt/vpskeeper"
+    elif [ -f "$script_dir/core.sh" ]; then
+        SCRIPT_DIR="$(dirname "$script_dir")"
     else
-        # 默认当前目录
         SCRIPT_DIR="$script_dir"
     fi
 
@@ -40,16 +33,15 @@ get_script_dir() {
 load_core_libs() {
     local script_dir="$1"
 
-    # 加载颜色定义
     if [ -f "$script_dir/lib/colors.sh" ]; then
         source "$script_dir/lib/colors.sh"
     elif [ -f "$script_dir/sub/color.sh" ]; then
         source "$script_dir/sub/color.sh"
     else
         echo "警告: 无法找到颜色定义文件"
+        echo "当前目录: $SCRIPT_DIR"
     fi
 
-    # 加载核心函数
     if [ -f "$script_dir/lib/core.sh" ]; then
         source "$script_dir/lib/core.sh"
     elif [ -f "$script_dir/sub/base.sh" ] && [ -f "$script_dir/sub/config.sh" ]; then
@@ -57,10 +49,10 @@ load_core_libs() {
         source "$script_dir/sub/config.sh"
     else
         echo "错误: 无法找到核心函数文件"
+        echo "当前目录: $SCRIPT_DIR"
         exit 1
     fi
 
-    # 加载工具函数
     if [ -f "$script_dir/lib/utils.sh" ]; then
         source "$script_dir/lib/utils.sh"
     elif [ -f "$script_dir/sub/tools.sh" ] && [ -f "$script_dir/sub/dataTools.sh" ]; then
@@ -68,6 +60,7 @@ load_core_libs() {
         source "$script_dir/sub/dataTools.sh"
     else
         echo "警告: 无法找到工具函数文件"
+        echo "当前目录: $SCRIPT_DIR"
     fi
 }
 
@@ -75,7 +68,6 @@ load_core_libs() {
 load_monitoring_modules() {
     local script_dir="$1"
 
-    # 监控模块列表
     local monitoring_modules=(
         "statusCheck.sh"
         "setupCPUTg.sh"
@@ -98,7 +90,6 @@ load_monitoring_modules() {
 load_notification_modules() {
     local script_dir="$1"
 
-    # 通知模块列表
     local notification_modules=(
         "setupBootTg.sh"
         "setupLoginTg.sh"
@@ -122,7 +113,6 @@ load_notification_modules() {
 load_system_modules() {
     local script_dir="$1"
 
-    # 系统模块列表
     local system_modules=(
         "setupIniFile.sh"
         "setAutoUpdate.sh"
@@ -145,13 +135,10 @@ load_system_modules() {
 load_all_modules() {
     local script_dir="$1"
 
-    # 加载核心库
     load_core_libs "$script_dir"
 
-    # 初始化系统
     init_system
 
-    # 加载功能模块
     load_monitoring_modules "$script_dir"
     load_notification_modules "$script_dir"
     load_system_modules "$script_dir"
@@ -159,15 +146,12 @@ load_all_modules() {
 
 # 主加载函数
 load_vpskeeper() {
-    # 获取脚本目录
     SCRIPT_DIR=$(get_script_dir)
 
-    # 设置全局变量
     export SCRIPT_DIR
-    export FolderPath="/opt/vpskeeper/shfiles"
+    export FolderPath="/opt/vpskeeper/runtime"
     export ConfigFile="$FolderPath/TelgramBot.ini"
 
-    # 加载所有模块
     load_all_modules "$SCRIPT_DIR"
 
     # 设置错误处理（仅对关键错误）
@@ -181,7 +165,6 @@ load_vpskeeper() {
 check_loader_dependencies() {
     local missing_deps=()
 
-    # 检查必要命令
     local required_commands=("awk" "sed" "grep" "curl" "wget")
     for cmd in "${required_commands[@]}"; do
         if ! command -v "$cmd" >/dev/null 2>&1; then

@@ -32,7 +32,7 @@ VPSKeeper/
 │   ├── monitoring/          # 监控模块
 │   ├── notifications/       # 通知模块
 │   └── system/              # 系统模块
-└── shfiles/                 # 运行时文件
+└── runtime/                 # 运行时文件
 ```
 
 ### 核心组件
@@ -228,7 +228,7 @@ x. 退出程序
 | TelgramBotToken | Telegram Bot Token | 123456:ABC-DEF... |
 | ChatID_1 | 主要接收者 Chat ID | 123456789 |
 | hostname | 主机名 | MyServer |
-| FolderPath | 配置文件路径 | /opt/vpskeeper/shfiles |
+| FolderPath | 配置文件路径 | /opt/vpskeeper/runtime |
 
 ### 监控配置
 
@@ -335,9 +335,9 @@ x. 退出程序
 
 ### 日志文件
 
-- **主日志**: `/opt/vpskeeper/shfiles/vpskeeper.log`
-- **Webhook 日志**: `/opt/vpskeeper/shfiles/webhook.log`
-- **消息日志**: `/opt/vpskeeper/shfiles/message.json`
+- **主日志**: `/opt/vpskeeper/runtime/vpskeeper.log`
+- **Webhook 日志**: `/opt/vpskeeper/runtime/webhook.log`
+- **消息日志**: `/opt/vpskeeper/runtime/message.json`
 
 ### 联系方式
 

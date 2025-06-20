@@ -17,7 +17,7 @@ sh_ver="1.2500616.1"
 # 基本参数配置
 SHURL="https://raw.githubusercontent.com/redstarxxx/shell/2025"
 SHURL_PROXY="https://xx80.eu.org/p/$SHURL"
-FolderPath="/opt/vpskeeper/shfiles"
+FolderPath="/opt/vpskeeper/runtime"
 ConfigFile="$FolderPath/TelgramBot.ini"
 BOTToken_de="6718888288:AAG5aVWV4FCmS0ItoPy1-3KkhdNg8eym5AM"
 CPUTools_de="top"
